@@ -4,15 +4,26 @@
 ### 학번: 2022314309
 ---
 ### Before start
+![image](https://github.com/ai-cho/DNN_hw-1/assets/120773889/8ac72750-bf65-4f4a-b3da-4bc0191d1a40)
+전체 네트워크 구조 (Task2 gradient 구하는 부분에서 각 기호 참고)
+
+
+![image](https://github.com/ai-cho/DNN_hw-1/assets/120773889/5230a68e-dcfa-4f03-bd26-593b7c741eed)
+노드 번호 같을 경우 +, 다를 경우 - 를 붙인다. (Task2 softmax 미분할 때 참고)
+
+
+![image](https://github.com/ai-cho/DNN_hw-1/assets/120773889/f90ca42a-f19b-4018-b3fa-52e5f01210fa)
+Cross Entropy Loss 미분하면 softmax(y_pred) - target (Task2 Loss function 미분할 때 참고)
+
 
     import numpy as np
     import torch
     from torch import nn
     import torch.optim as optim 
     
-    np.__version__, torch.__version__ #check version -> ('1.25.2', '2.2.1+cu121')
+    np.__version__, torch.__version__ #check version ('1.25.2', '2.2.1+cu121')
     torch.manual_seed(42)
-  
+
 ## Task 1
 * Using Numpy
 
@@ -82,11 +93,11 @@
           def __init__(self):
             super().__init__()
             self.linear1 = nn.Linear(3, 4, bias = False) # no bias
-            self.linear1.weight.data = w1_t.T # set first weigth w1_t
+            self.linear1.weight.data = w1_t.T # set first weight w1_t
             self.act1 = nn.ReLU()
             self.dropout = nn.Dropout(p=0.4) # dropout 시 사용 예정
             self.linear2 = nn.Linear(4, 2, bias = False)
-            self.linear2.weight.data = w2_t.T # set first weight w2_t
+            self.linear2.weight.data = w2_t.T # set second weight w2_t
             self.act2 = nn.Softmax(dim = -1)
         
           def forward(self, x, dropout = False): 
@@ -105,6 +116,9 @@
     ## output
       when input is x1:  tensor([0.1324, 0.8676], grad_fn=<SoftmaxBackward0>)
       when input is x2:  tensor([0.0145, 0.9855], grad_fn=<SoftmaxBackward0>)
+
+  * numpy, torch 코드에서 랜덤한 결과를 내는 부분이 없으므로 서로의 결과값이 같다.
+    
 ---
 ## Task 2
 * Using Numpy
@@ -130,8 +144,8 @@
             output = NN_np(input, True, p, random_seed)[-1] # dropout 적용된 아웃풋으로 가져옴
           else:
             output = NN_np(input)[-1] # dropout 적용 안된 아웃풋
-          dL_do = Softmax(output) - target # Cross Entropy Loss를 O에 대해 미분 
-          do_dy = np.zeros((2,2)) # Softmax(y)를 y에 대해 미분
+          dL_do = Softmax(output) - target # Cross Entropy Loss를 O에 대해 미분 (처음 이미지 참고)
+          do_dy = np.zeros((2,2)) # Softmax(y)를 y에 대해 미분 (처음 이미지 참고)
           for i_1 in range(2):
             for j_1 in range(2):
               if i_1 == j_1:
@@ -142,7 +156,7 @@
           dr_j_dh = np.array([1 if NN_np(input)[0][j] > 0 else 0]) # ReLU(h)를 h에 대해 미분. h 값이 0보다 크면 1, 아니면 0
           dh_dw_ij = input[i] # h를 w에 대해 미분. 그냥 input 값
 
-          # chain-rule 적용하여 계산 (dL/dw)
+          # chain-rule 적용하여 계산 (dL/dw1)
           result = np.dot(dL_do, do_dy)
           result = np.dot(result, dy_dr_j)
           result = np.dot(result, dr_j_dh)
@@ -217,12 +231,16 @@
                 [0.0104, 0.0104, 0.0104, 0.0104],
                 [0.0124, 0.0124, 0.0124, 0.0124]])
 
+  * w1의 경우 gradient를 결정짓는 것은 x의 값이었다. dL/do, do/dy, dy/dr, dr/dh를 곱한 값들이 모두 동일했다.
+  * 따라서 출발노드가 동일한 경우에는 input x값이 같아 gradient 값도 같다.
+  * 각각의 출발노드의 gradient는 input x 값에 비례하는 모습을 보인다.
+
 
 ## Task 3
 
 * Using Numpy
   
-        # w2 gradient 구하는 부분. 기본적인 형태는 Task2의 w1 gradient와 동일
+        # w2 gradient 구하는 부분. 기본적인 형태는 Task2의 w1 gradient 구하기와 동일
   
         def gradient_w2(input, target, i, j, dropout = False, p = 0, random_seed = 42): # i_1: start, j_1: end
           if dropout == True:
@@ -238,6 +256,8 @@
               else:
                 do_dy[i_1][j_1] = -output[0]*output[1] # 다른 번호의 노드인 경우
           dy_dw_j = NN_np(input)[1][i] # y를 w에 대해 미분. 그냥 h 값
+
+          # chain-rule 적용하여 dL/dw2 계산
           result = np.dot(dL_do, do_dy)[j]
           result = result * dy_dw_j
           return round(result.item(), 4)
@@ -250,7 +270,7 @@
             for end in range(2):
               if dropout == True:
                 weight_grad[start][end] = gradient_w2(input, target, start, end, dropout, p, random_seed)
-                idx = np.where(NN_np(input, True, p, random_seed)[1] == 0)[0] # 00인 지점은 가중치 0으로 세팅 #idx가 고정되는 error 발생
+                idx = np.where(NN_np(input, True, p, random_seed)[1] == 0)[0] # 드롭아웃된 노드에서 출발하는 가중치 0으로 세팅
                 for i in idx:
                   weight_grad[i, :] = 0.0
               else:
@@ -347,7 +367,7 @@
           pred = NN_torch1(x1_t, True)
           loss = loss_fn(pred, y1_t)
           # backward
-          optimizer.zero_grad() #gradient 누적안되게 각 epoch마다 초기화
+          optimizer.zero_grad() # gradient 누적 안되게 각 epoch마다 초기화
           loss.backward()
           optimizer.step()
         print('input: x1\n')
@@ -402,3 +422,5 @@
                 [0.5493, 0.3507],
                 [0.7356, 0.5644],
                 [0.9324, 0.7676]], grad_fn=<PermuteBackward0>)
+
+  * pytorch를 이용한 dropout과 numpy를 이용한 dropout의 노드를 동일하게 맞출 수 없어 결과값이 같지 않다. 그러나, 서로 근사한 값을 가진다는 점에서 numpy를 이용한 dropout이 잘 구현된 것으로 보인다.
