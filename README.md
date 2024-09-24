@@ -1,7 +1,6 @@
 # Homework#1: Implementing Fully-connected Neural Network
 ### 이름: 조정환
 
-### 학번: 2022314309
 ---
 ### Before start
 ![image](https://github.com/ai-cho/DNN_hw-1/assets/120773889/8ac72750-bf65-4f4a-b3da-4bc0191d1a40)
